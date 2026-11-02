@@ -50,6 +50,9 @@ actor KeyAuthService {
             throw KeyAuthError.network("No se pudo conectar con KeyAuth. Revisa tu conexión.")
         }
 
+        let rawText = String(data: data, encoding: .utf8) ?? "<no decodificable>"
+        log("keyauth: response for type=\(params["type"] ?? "?") -> \(rawText)")
+
         guard
             let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else {
@@ -66,6 +69,7 @@ actor KeyAuthService {
             "ownerid": KeyAuthConfig.ownerid,
             "secret": KeyAuthConfig.secret,
             "ver": KeyAuthConfig.version,
+            "hash": "",
         ]
         let json = try await post(params)
 

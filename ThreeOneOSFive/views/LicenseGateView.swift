@@ -20,6 +20,13 @@ struct LicenseGateView: View {
     @State private var licenseKey: String = ""
     @State private var isValidating = false
     @State private var errorMessage: String?
+    @State private var showDebugDetail = false
+
+    /// Última respuesta cruda de KeyAuth, tomada del log interno de la app.
+    /// Sirve para diagnosticar sin necesitar Xcode ni una Mac.
+    private var lastDebugLine: String? {
+        AppLog.shared.entries.last { $0.contains("keyauth:") }
+    }
 
     var body: some View {
         ZStack {
@@ -55,6 +62,30 @@ struct LicenseGateView: View {
                         .foregroundStyle(.red.opacity(0.9))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
+
+                    if lastDebugLine != nil {
+                        Button(showDebugDetail ? "Ocultar detalle" : "Ver detalle técnico") {
+                            showDebugDetail.toggle()
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.6))
+                    }
+
+                    if showDebugDetail, let lastDebugLine {
+                        ScrollView {
+                            Text(lastDebugLine)
+                                .font(.system(.caption2, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.8))
+                                .textSelection(.enabled)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(10)
+                        }
+                        .frame(maxHeight: 160)
+                        .background(AppTheme.consoleBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .padding(.horizontal, 32)
+                    }
                 }
 
                 Button {
