@@ -81,12 +81,9 @@ struct ThreeOneOSFiveApp: App {
             }
             .alert(item: $updateOffer) { offer in
                 Alert(
-                    title: Text(language.text("update.title")),
-                    message: Text(language.text("update.message", offer.version)),
-                    primaryButton: .default(Text(language.text("update.agree"))) {
-                        UIApplication.shared.open(offer.url)
-                    },
-                    secondaryButton: .cancel(Text(language.text("update.dismiss"))) {
+                    title: Text(language.text("social.discord.title")),
+                    message: Text(language.text("social.discord.message")),
+                    dismissButton: .cancel(Text(language.text("update.dismiss"))) {
                         AppUpdateChecker.dismiss(version: offer.version)
                     }
                 )
