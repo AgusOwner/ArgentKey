@@ -1,5 +1,4 @@
 import Foundation
-import UIKit
 
 enum KeyAuthError: LocalizedError {
     case network(String)
@@ -16,17 +15,12 @@ enum KeyAuthError: LocalizedError {
 }
 
 /// Cliente mínimo para la API 1.3 de KeyAuth: inicializa sesión y valida una key.
-/// No implementa la verificación de firma (signature) de las respuestas;
-/// eso añade protección extra contra manipulación de red, pero no es
-/// necesario para que la validación básica funcione.
 actor KeyAuthService {
     static let shared = KeyAuthService()
 
     private var sessionId: String?
 
-    private var hwid: String {
-        UIDevice.current.identifierForVendor?.uuidString ?? "unknown-device"
-    }
+    private var hwid: String { ActivationLedger.hwid }
 
     private func post(_ params: [String: String]) async throws -> [String: Any] {
         guard let url = URL(string: KeyAuthConfig.apiBaseURL) else {
@@ -34,6 +28,7 @@ actor KeyAuthService {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 20
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
 
         let body = params
@@ -80,8 +75,22 @@ actor KeyAuthService {
         sessionId = json["sessionid"] as? String
     }
 
-    /// Valida una license key contra KeyAuth. Lanza error si es inválida.
+    /// Valida una license key contra KeyAuth. Lanza error si es inválida,
+    /// si ya se activó en este dispositivo o si pertenece a otro equipo.
     func validate(key: String) async throws {
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw KeyAuthError.server("Key inválida.")
+        }
+
+        // El llavero sobrevive a la desinstalación, así que una key ya usada
+        // se rechaza aquí aunque la app se haya borrado y reinstalado.
+        if ActivationLedger.isBurned(trimmed) {
+            throw KeyAuthError.server(
+                "Esta key ya fue activada en este dispositivo. Usa una key nueva."
+            )
+        }
+
         if sessionId == nil {
             try await initialize()
         }
@@ -91,7 +100,7 @@ actor KeyAuthService {
 
         let params: [String: String] = [
             "type": "license",
-            "key": key,
+            "key": trimmed,
             "hwid": hwid,
             "sessionid": sessionId,
             "name": KeyAuthConfig.name,
@@ -100,8 +109,26 @@ actor KeyAuthService {
         let json = try await post(params)
 
         guard (json["success"] as? Bool) == true else {
-            let message = json["message"] as? String ?? "Key inválida."
-            throw KeyAuthError.server(message)
+            let raw = (json["message"] as? String)?.trimmingCharacters(in: .whitespaces) ?? ""
+            throw KeyAuthError.server(Self.spanish(raw))
         }
+
+        // Solo se quema cuando KeyAuth confirmó la activación.
+        ActivationLedger.burn(trimmed)
+    }
+
+    private static func spanish(_ raw: String) -> String {
+        let value = raw.lowercased()
+        guard !value.isEmpty else { return "Key inválida." }
+        if value.contains("max uses") || value.contains("already used") || value.contains("reached") {
+            return "Esta key ya fue usada y no puede volver a activarse. Pide una nueva."
+        }
+        if value.contains("hwid") || value.contains("hardware") {
+            return "Esta key ya está vinculada a otro dispositivo."
+        }
+        if value.contains("expired") { return "La key caducó." }
+        if value.contains("not found") || value.contains("does not exist") { return "La key no existe." }
+        if value.contains("banned") { return "La key está baneada." }
+        return raw
     }
 }
