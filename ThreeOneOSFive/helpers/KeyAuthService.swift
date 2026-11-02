@@ -94,6 +94,8 @@ actor KeyAuthService {
             "key": key,
             "hwid": hwid,
             "sessionid": sessionId,
+            "name": KeyAuthConfig.name,
+            "ownerid": KeyAuthConfig.ownerid,
         ]
         let json = try await post(params)
 
