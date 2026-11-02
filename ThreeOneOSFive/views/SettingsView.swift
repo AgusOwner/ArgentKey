@@ -104,9 +104,9 @@ struct SettingsView: View {
 
                 Section(language.text("settings.social_media")) {
                     creditsRow(
-                        name: "GitHub",
+                        name: "Discord",
                         role: language.text("social.github_role"),
-                        url: "https://github.com/YangJiiii/3105"
+                        url: "https://discord.gg/AJdK8NtDBN"
                     )
                     creditsRow(
                         name: "Cộng Đồng IOSVN",
