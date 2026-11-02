@@ -33,9 +33,10 @@ struct LicenseGateView: View {
             AppTheme.pageBackground.ignoresSafeArea()
 
             VStack(spacing: 20) {
-                Image(systemName: "key.fill")
-                    .font(.system(size: 40))
-                    .foregroundStyle(AppTheme.accent)
+                Image("ArgentLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 140, height: 140)
                     .padding(.bottom, 8)
 
                 Text("Argent")
